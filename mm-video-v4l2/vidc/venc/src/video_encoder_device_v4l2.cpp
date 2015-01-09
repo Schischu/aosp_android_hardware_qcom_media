@@ -1194,6 +1194,7 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
                     if (!venc_set_color_format(portDefn->format.video.eColorFormat)) {
                         return false;
                     }
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_IFRAME_X_RANGE
                     if ((display_info.w * display_info.h) > (OMX_CORE_720P_WIDTH * OMX_CORE_720P_HEIGHT)
                         && enable_mv_narrow_searchrange &&
                         (m_sVenc_cfg.input_width * m_sVenc_cfg.input_height) >=
@@ -1202,6 +1203,7 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
                             DEBUG_PRINT_ERROR("ERROR: Failed to set search range");
                         }
                     }
+#endif
                     if (m_sVenc_cfg.input_height != portDefn->format.video.nFrameHeight ||
                             m_sVenc_cfg.input_width != portDefn->format.video.nFrameWidth) {
                         DEBUG_PRINT_LOW("Basic parameter has changed");
@@ -1557,6 +1559,7 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
 
                 break;
             }
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_I_FRAME_QP
         case QOMX_IndexParamVideoInitialQp:
             {
                 QOMX_EXTNINDEX_VIDEO_INITIALQP * initqp =
@@ -1571,6 +1574,7 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
                     DEBUG_PRINT_ERROR("ERROR: setting QOMX_IndexParamVideoEnableInitialQp");
                 break;
             }
+#endif
         case OMX_QcomIndexParamVideoQPRange:
             {
                 DEBUG_PRINT_LOW("venc_set_param:OMX_QcomIndexParamVideoQPRange");
@@ -1727,6 +1731,7 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
                 }
                 break;
             }
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_IFRAME_X_RANGE
        case OMX_QcomIndexParamSetMVSearchrange:
             {
                DEBUG_PRINT_LOW("venc_set_config: OMX_QcomIndexParamSetMVSearchrange");
@@ -1737,6 +1742,7 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
                }
             }
             break;
+#endif
         case OMX_IndexParamVideoSliceFMO:
         default:
             DEBUG_PRINT_ERROR("ERROR: Unsupported parameter in venc_set_param: %u",
@@ -2016,9 +2022,11 @@ unsigned venc_dev::venc_start(void)
 {
     enum v4l2_buf_type buf_type;
     int ret, r;
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_REQUEST_SEQ_HEADER
     struct v4l2_control control;
 
     memset(&control, 0, sizeof(control));
+#endif
 
     DEBUG_PRINT_HIGH("%s(): Check Profile/Level set in driver before start",
             __func__);
@@ -2057,6 +2065,7 @@ unsigned venc_dev::venc_start(void)
 
     streaming[CAPTURE_PORT] = true;
 
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_REQUEST_SEQ_HEADER
     control.id = V4L2_CID_MPEG_VIDC_VIDEO_REQUEST_SEQ_HEADER;
     control.value = 1;
     ret = ioctl(m_nDriver_fd, VIDIOC_S_CTRL, &control);
@@ -2064,6 +2073,7 @@ unsigned venc_dev::venc_start(void)
         DEBUG_PRINT_ERROR("failed to request seq header");
         return 1;
     }
+#endif
 
     stopped = 0;
     return 0;
@@ -2655,6 +2665,7 @@ bool venc_dev::venc_set_slice_delivery_mode(OMX_U32 enable)
     return true;
 }
 
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_I_FRAME_QP
 bool venc_dev::venc_enable_initial_qp(QOMX_EXTNINDEX_VIDEO_INITIALQP* initqp)
 {
     int rc;
@@ -2699,6 +2710,7 @@ bool venc_dev::venc_enable_initial_qp(QOMX_EXTNINDEX_VIDEO_INITIALQP* initqp)
                     controls.controls[3].id, controls.controls[3].value);
     return true;
 }
+#endif
 
 bool venc_dev::venc_set_session_qp(OMX_U32 i_frame_qp, OMX_U32 p_frame_qp,OMX_U32 b_frame_qp)
 {
@@ -3143,11 +3155,13 @@ bool venc_dev::venc_set_intra_period(OMX_U32 nPFrames, OMX_U32 nBFrames)
             (codec_profile.profile != V4L2_MPEG_VIDEO_H264_PROFILE_HIGH)) {
         nBFrames=0;
     }
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_IFRAME_X_RANGE
     if ((display_info.w * display_info.h > OMX_CORE_720P_WIDTH * OMX_CORE_720P_HEIGHT)
         && enable_mv_narrow_searchrange && (m_sVenc_cfg.input_width * m_sVenc_cfg.input_height >=
         OMX_CORE_1080P_WIDTH * OMX_CORE_1080P_HEIGHT || is_searchrange_set)) {
         nBFrames=0;
     }
+#endif
 
     control.id = V4L2_CID_MPEG_VIDC_VIDEO_NUM_P_FRAMES;
     control.value = nPFrames;
@@ -3811,6 +3825,7 @@ bool venc_dev::venc_set_vpe_rotation(OMX_S32 rotation_angle)
 
 bool venc_dev::venc_set_searchrange()
 {
+#ifdef V4L2_CID_MPEG_VIDC_VIDEO_IFRAME_X_RANGE
     DEBUG_PRINT_LOW("venc_set_searchrange");
     struct v4l2_control control;
     struct v4l2_ext_control ctrl[6];
@@ -3881,6 +3896,7 @@ bool venc_dev::venc_set_searchrange()
         DEBUG_PRINT_ERROR("Failed to set search range %d", rc);
         return false;
     }
+#endif
     return true;
 }
 

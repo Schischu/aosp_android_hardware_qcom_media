@@ -1629,6 +1629,7 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
         codec_type_parse = CODEC_TYPE_H264;
         m_frame_parser.init_start_codes (codec_type_parse);
         m_frame_parser.init_nal_length(nal_length);
+#ifdef VDEC_CODECTYPE_MVC
     } else if (!strncmp(drv_ctx.kind, "OMX.qcom.video.decoder.mvc",\
                 OMX_MAX_STRINGNAME_SIZE)) {
         strlcpy((char *)m_cRole, "video_decoder.mvc", OMX_MAX_STRINGNAME_SIZE);
@@ -1638,6 +1639,7 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
         codec_type_parse = CODEC_TYPE_H264;
         m_frame_parser.init_start_codes(codec_type_parse);
         m_frame_parser.init_nal_length(nal_length);
+#endif
     } else if (!strncmp(drv_ctx.kind, "OMX.qcom.video.decoder.hevc",\
                 OMX_MAX_STRINGNAME_SIZE)) {
         strlcpy((char *)m_cRole, "video_decoder.hevc",OMX_MAX_STRINGNAME_SIZE);
@@ -1799,6 +1801,7 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
                 return OMX_ErrorInsufficientResources;
             }
         }
+#ifdef VDEC_CODECTYPE_MVC
         if (output_capability == V4L2_PIX_FMT_H264_MVC) {
             control.id = V4L2_CID_MPEG_VIDC_VIDEO_MVC_BUFFER_LAYOUT;
             control.value = V4L2_MPEG_VIDC_VIDEO_MVC_TOP_BOTTOM;
@@ -1808,6 +1811,7 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
                 return OMX_ErrorInsufficientResources;
             }
         }
+#endif
 
         /*Get the Buffer requirements for input and output ports*/
         drv_ctx.ip_buf.buffer_type = VDEC_BUFFER_TYPE_INPUT;
@@ -1837,9 +1841,14 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
         eRet=get_buffer_req(&drv_ctx.ip_buf);
         DEBUG_PRINT_HIGH("Input Buffer Size =%d",drv_ctx.ip_buf.buffer_size);
         get_buffer_req(&drv_ctx.op_buf);
+#ifdef VDEC_CODECTYPE_MVC
         if (drv_ctx.decoder_format == VDEC_CODECTYPE_H264 ||
-                drv_ctx.decoder_format == VDEC_CODECTYPE_HEVC ||
+                drv_ctx.decoder_format == VDEC_CODECTYPE_HEVC || 
                 drv_ctx.decoder_format == VDEC_CODECTYPE_MVC) {
+#else
+        if (drv_ctx.decoder_format == VDEC_CODECTYPE_H264 ||
+                drv_ctx.decoder_format == VDEC_CODECTYPE_HEVC) {
+#endif
                     h264_scratch.nAllocLen = drv_ctx.ip_buf.buffer_size;
                     h264_scratch.pBuffer = (OMX_U8 *)malloc (drv_ctx.ip_buf.buffer_size);
                     h264_scratch.nFilledLen = 0;
@@ -1850,8 +1859,12 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
                         return OMX_ErrorInsufficientResources;
                     }
         }
-        if (drv_ctx.decoder_format == VDEC_CODECTYPE_H264 ||
-            drv_ctx.decoder_format == VDEC_CODECTYPE_MVC) {
+#ifdef VDEC_CODECTYPE_MVC
+        if (drv_ctx.decoder_format == VDEC_CODECTYPE_H264
+            || drv_ctx.decoder_format == VDEC_CODECTYPE_MVC) {
+#else
+        if (drv_ctx.decoder_format == VDEC_CODECTYPE_H264) {
+#endif
             if (m_frame_parser.mutils == NULL) {
                 m_frame_parser.mutils = new H264_Utils();
                 if (m_frame_parser.mutils == NULL) {
@@ -8923,7 +8936,11 @@ OMX_ERRORTYPE omx_vdec::enable_extradata(OMX_U32 requested_extradata,
                 DEBUG_PRINT_HIGH("Failed to set panscan extradata");
             }
             control.id = V4L2_CID_MPEG_VIDC_VIDEO_EXTRADATA;
+#ifdef V4L2_MPEG_VIDC_EXTRADATA_ASPECT_RATIO
             control.value = V4L2_MPEG_VIDC_EXTRADATA_ASPECT_RATIO;
+#else
+            control.value = V4L2_MPEG_VIDC_INDEX_EXTRADATA_ASPECT_RATIO;
+#endif
             if (ioctl(drv_ctx.video_driver_fd, VIDIOC_S_CTRL, &control)) {
                 DEBUG_PRINT_HIGH("Failed to set panscan extradata");
             }
@@ -8968,6 +8985,7 @@ OMX_ERRORTYPE omx_vdec::enable_extradata(OMX_U32 requested_extradata,
                 DEBUG_PRINT_HIGH("Failed to set frame bits info extradata");
             }
         }
+#ifdef V4L2_MPEG_VIDC_EXTRADATA_STREAM_USERDATA
         if (requested_extradata & OMX_EXTNUSER_EXTRADATA) {
             control.id = V4L2_CID_MPEG_VIDC_VIDEO_EXTRADATA;
             control.value = V4L2_MPEG_VIDC_EXTRADATA_STREAM_USERDATA;
@@ -8975,6 +8993,7 @@ OMX_ERRORTYPE omx_vdec::enable_extradata(OMX_U32 requested_extradata,
                 DEBUG_PRINT_HIGH("Failed to set stream userdata extradata");
             }
         }
+#endif
     }
     ret = get_buffer_req(&drv_ctx.op_buf);
     return ret;
@@ -9648,10 +9667,12 @@ bool omx_vdec::allocate_color_convert_buf::set_color_format(
     }
     pthread_mutex_lock(&omx->c_lock);
     if (omx->drv_ctx.output_format == VDEC_YUV_FORMAT_NV12)
+#ifdef VDEC_CODECTYPE_MVC
         if (omx->drv_ctx.decoder_format == VDEC_CODECTYPE_MVC)
             drv_color_format = (OMX_COLOR_FORMATTYPE)
                 QOMX_COLOR_FORMATYUV420PackedSemiPlanar32mMultiView;
         else
+#endif
         drv_color_format = (OMX_COLOR_FORMATTYPE)
             QOMX_COLOR_FORMATYUV420PackedSemiPlanar32m;
     else {
@@ -9911,10 +9932,12 @@ bool omx_vdec::allocate_color_convert_buf::get_color_format(OMX_COLOR_FORMATTYPE
     bool status = true;
     if (!enabled) {
         if (omx->drv_ctx.output_format == VDEC_YUV_FORMAT_NV12)
+#ifdef VDEC_CODECTYPE_MVC
             if (omx->drv_ctx.decoder_format == VDEC_CODECTYPE_MVC)
                     dest_color_format = (OMX_COLOR_FORMATTYPE)
                         QOMX_COLOR_FORMATYUV420PackedSemiPlanar32mMultiView;
                 else
+#endif
             dest_color_format =  (OMX_COLOR_FORMATTYPE)
                 QOMX_COLOR_FORMATYUV420PackedSemiPlanar32m;
         else
