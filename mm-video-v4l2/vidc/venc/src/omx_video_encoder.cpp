@@ -2063,9 +2063,11 @@ int omx_venc::async_message_process (void *context, void* message)
     if (m_sVenc_msg->statuscode != VEN_S_SUCCESS) {
         DEBUG_PRINT_ERROR("ERROR: async_msg_process() - Error statuscode = %lu",
                 m_sVenc_msg->statuscode);
+#if 0
         if(m_sVenc_msg->msgcode == VEN_MSG_HW_OVERLOAD) {
             omx->omx_report_hw_overload();
         } else
+#endif
         omx->omx_report_error();
     }
 
