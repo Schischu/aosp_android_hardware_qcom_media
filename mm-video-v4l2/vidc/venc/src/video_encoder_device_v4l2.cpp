@@ -1350,11 +1350,13 @@ bool venc_dev::venc_set_param(void *paramData,OMX_INDEXTYPE index )
 
                     DEBUG_PRINT_LOW("input: actual: %u, min: %u, count_req: %u",
                             (unsigned int)portDefn->nBufferCountActual, (unsigned int)m_sInput_buff_property.mincount, bufreq.count);
+#ifdef V4L2_MPEG_VIDC_VIDEO_PERF_POWER_SAVE
                     if (m_sVenc_cfg.input_width * m_sVenc_cfg.input_height >= 3840 * 2160) {
                         if (venc_set_perf_mode(V4L2_MPEG_VIDC_VIDEO_PERF_POWER_SAVE) == false) {
                             DEBUG_PRINT_ERROR("ERROR: Failed to set Power save mode");
                         }
                     }
+#endif
                 } else if (portDefn->nPortIndex == PORT_INDEX_OUT) {
                     m_sVenc_cfg.dvs_height = portDefn->format.video.nFrameHeight;
                     m_sVenc_cfg.dvs_width = portDefn->format.video.nFrameWidth;

@@ -9510,6 +9510,7 @@ OMX_ERRORTYPE omx_vdec::enable_extradata(OMX_U32 requested_extradata,
                 DEBUG_PRINT_HIGH("Seq display extradata is supported for MPEG2 only");
             }
         }
+#ifdef V4L2_MPEG_VIDC_EXTRADATA_VUI_DISPLAY
         if (requested_extradata & OMX_VUI_DISPLAY_INFO_EXTRADATA) {
             control.id = V4L2_CID_MPEG_VIDC_VIDEO_EXTRADATA;
             control.value = V4L2_MPEG_VIDC_EXTRADATA_VUI_DISPLAY;
@@ -9517,6 +9518,7 @@ OMX_ERRORTYPE omx_vdec::enable_extradata(OMX_U32 requested_extradata,
                 DEBUG_PRINT_HIGH("Failed to set display VUI extradata");
             }
         }
+#endif
     }
     ret = get_buffer_req(&drv_ctx.op_buf);
     return ret;
